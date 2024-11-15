@@ -1,0 +1,4 @@
+portalocker>=2.0.0
+torchtext
+torch
+cuda-python
