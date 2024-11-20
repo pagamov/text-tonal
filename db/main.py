@@ -73,7 +73,7 @@ def check_file_in_directory(file_name, directory):
         return True
     else:
         print(f"The file '{file_name}' does not exist in the directory '{directory}'.")
-        combine_chunks(zip_file, len([name for name in os.listdir('./db/') if 'part' in name]), './db/main.db.zip')
+        combine_chunks(zip_file, len([name for name in os.listdir('./db/') if '_part_' in name]), './db/main.db.zip')
         unzip_file(zip_file, './db/')
         return False
     
