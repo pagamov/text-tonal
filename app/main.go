@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 
-	// "net/http"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jbrukh/bayesian"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -41,10 +44,42 @@ const (
 	path_db string = "../db/main.db"
 )
 
-const (
-	Good bayesian.Class = "Good"
-	Bad  bayesian.Class = "Bad"
-)
+// can be multiple labels for one word
+type Info struct {
+	Label string `json:"label"`
+	Value int64  `json:"value"`
+}
+
+// for word we got N info marks for each label
+type Word struct {
+	Word string `json:"word"`
+	Info []Info `json:"info"`
+}
+
+type Analyz struct {
+	Count int64  `json:"count"`
+	Label string `json:"label"`
+	Words []Word `json:"words"`
+}
+
+type Statistics struct {
+	Date  string `json:"date"`
+	Text  string `json:"text"`
+	Count int64  `json:"count"`
+	Label string `json:"label"`
+	Words []Word `json:"words"`
+}
+
+// label + array of strings
+type Data struct {
+	Label string   `json:"label"`
+	Words []string `json:"text"`
+}
+
+// const (
+// 	Good bayesian.Class = "Good"
+// 	Bad  bayesian.Class = "Bad"
+// )
 
 // album represents data about a record album.
 // type album struct {
@@ -65,67 +100,286 @@ const (
 // 	c.IndentedJSON(http.StatusOK, albums)
 // }
 
-func setupDB() {
-	db, err := sql.Open("sqlite3", path_db)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+func analyze(c *gin.Context) {
+	// 	POST API/analyze?text=some text to parse
 
-	if _, err := db.Exec(Log_table); err != nil {
-		log.Fatalf("Error creating table: %v", err)
+	// 	RES =  {
+	//         "count" : "Number of words : Int64",
+	//         "label" : "soft max label of text : String",
+	//         "words" : [
+	//             {
+	//                 "word" : "word itself : String",
+	//                 "info" : [
+	//                     {
+	//                         "label" : "some label from learning labels : String",
+	//                         "value" : "percentage : Int8"
+	//                     }
+	//                 ]
+	//             }
+	//         ]
+	// }
+
+	res := Analyz{
+		Count: 10,
+		Label: "label",
+		Words: []Word{
+			{
+				Word: "word",
+				Info: []Info{
+					{Label: "label", Value: 10},
+				},
+			},
+		},
 	}
-	if _, err := db.Exec(Sample_table); err != nil {
-		log.Fatalf("Error creating table: %v", err)
-	}
-	if _, err := db.Exec(Usage_table); err != nil {
-		log.Fatalf("Error creating table: %v", err)
-	}
+
+	c.IndentedJSON(http.StatusOK, res)
 }
 
-func getLabels() []bayesian.Class {
+func statistics(c *gin.Context) {
+	// GET API/statistics?date_begin=“dd.mm.yyyy”&date_end==“dd.mm.yyyy”
+	// RES =  [{
+	// 	"date" : "date of request : Date",
+	// 	"text" : "text : String",
+	// 	"count" : "Number of words : Int64",
+	// 			"label" : "soft max label of text : String",
+	// 			"words" : [
+	// 				{  "word" : "word itself : String",
+	// 					"info" : [{
+	// 							"label" : "some label from learning labels : String",
+	// 							"value" : "percentage : Int8"
+	// 						}]
+	// 				}
+	// 			]
+	// 	}]
 
-	var res []bayesian.Class
-	db, err := sql.Open("sqlite3", path_db)
+	var res []Statistics = []Statistics{
+		{
+			Date:  "01/01/1977 14:20:00",
+			Text:  "Some text",
+			Count: 10,
+			Label: "label",
+			Words: []Word{
+				{
+					Word: "word",
+					Info: []Info{
+						{
+							Label: "label",
+							Value: 0,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	c.IndentedJSON(http.StatusOK, res)
+}
+
+// setup all db tables
+func setupDB() error {
+	var db *sql.DB
+	var err error
+	var path string = path_db
+
+	db, err = sql.Open("sqlite3", path)
 	if err != nil {
-		log.Fatal(err)
+		return err
+	}
+	defer db.Close()
+	if _, err := db.Exec(Log_table); err != nil {
+		return err
+	}
+	if _, err := db.Exec(Sample_table); err != nil {
+		return err
+	}
+	if _, err := db.Exec(Usage_table); err != nil {
+		return err
+	}
+	return nil
+}
+
+// we get label and return list of all words with this label
+func getWordsByLabel(label string) ([]string, error) {
+	var res []string
+	var db *sql.DB
+	var querry string
+	var rows *sql.Rows
+	var err error
+	var word string
+
+	db, err = sql.Open("sqlite3", path_db)
+	if err != nil {
+		return []string{}, err
+	}
+	defer db.Close()
+	querry = fmt.Sprintf(`SELECT word from Usage_table where label is "%s";`, label)
+	rows, err = db.Query(querry)
+	if err != nil {
+		return []string{}, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&word)
+		if err != nil {
+			return []string{}, err
+		}
+		res = append(res, word)
+	}
+	return res, nil
+}
+
+// get Data struct with map of labels and corresponding list of words
+func getUsage(labels []bayesian.Class) ([]Data, error) {
+	var label bayesian.Class
+	var res []Data = []Data{}
+	var err error
+	var words []string
+
+	for _, label = range labels {
+		words, err = getWordsByLabel(string(label))
+		if err != nil {
+			return []Data{}, err
+		}
+		res = append(res, Data{Label: string(label), Words: words})
+	}
+	return []Data{}, nil
+}
+
+// get all labels of text from db
+func getLabels() ([]bayesian.Class, error) {
+	var res []bayesian.Class
+	var db *sql.DB
+	var rows *sql.Rows
+	var err error
+	var label string
+	var path string = path_db
+	var getLabels string = `
+		SELECT label FROM Usage_table GROUP by label ORDER BY label ASC;
+	`
+
+	db, err = sql.Open("sqlite3", path)
+	if err != nil {
+		return []bayesian.Class{}, err
 	}
 	defer db.Close()
 
-	getLabels := `
-	SELECT label FROM Usage_table GROUP by label;
-	`
-	rows, err := db.Query(getLabels)
+	rows, err = db.Query(getLabels)
 	if err != nil {
-		log.Fatalf("Error getting labels: %v", err)
+		return []bayesian.Class{}, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&label)
+		if err != nil {
+			return []bayesian.Class{}, err
+		}
+		res = append(res, bayesian.Class(label))
+	}
+	return res, nil
+}
+
+// for line of text return splitted []string
+// of rus words without trash
+func processText(text string) []string {
+	var words []string
+
+	// lower text
+	var lower string = strings.ToLower(text)
+	// create re regex filter
+	re := regexp.MustCompile(`[^а-яё]`)
+	// filter words
+	cleaned := re.ReplaceAllString(lower, "")
+	// split string by " "
+	words = strings.Split(cleaned, " ")
+
+	return words
+}
+
+// func getTrainData() ([]Data, error) {
+// 	return []Data{}, nil
+// }
+
+func getTestData() ([]Data, error) {
+	var err error
+	var res []Data = []Data{}
+	var db *sql.DB
+	var rows *sql.Rows
+	var querry string = `
+		SELECT label, text_ru from Sample_table where text_ru is not NULL;
+	`
+	var path string = path_db
+	db, err = sql.Open("sqlite3", path)
+	if err != nil {
+		return []Data{}, err
+	}
+	defer db.Close()
+
+	rows, err = db.Query(querry)
+	if err != nil {
+		return []Data{}, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var label string
-		err = rows.Scan(&label)
+		var text string
+		var processedText []string
+		err = rows.Scan(&label, &text)
 		if err != nil {
-			log.Fatalf("Error scanning label: %v", err)
+			return []Data{}, err
 		}
-		res = append(res, bayesian.Class(label))
+		processedText = processText(text)
+		res = append(res, Data{Label: label, Words: processedText})
 	}
-	return res
+	return res, nil
 }
 
 func main() {
-	setupDB()
+	var err error
+	var labels []bayesian.Class
+	var index int
+	var label bayesian.Class
+	var router *gin.Engine
 
-	var labels []bayesian.Class = getLabels()
+	err = setupDB()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	for index, label := range labels {
+	labels, err = getLabels()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for index, label = range labels {
 		fmt.Printf("Label %d: %s\n", index, label)
 	}
 
-	classifier := bayesian.NewClassifier(Good, Bad)
-	goodStuff := []string{"tall", "rich", "handsome"}
-	badStuff := []string{"tall", "poor", "smelly", "ugly"}
-	classifier.Learn(goodStuff, Good)
-	classifier.Learn(badStuff, Bad)
+	data, err := getUsage(labels)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	classifier := bayesian.NewClassifier(labels...)
+
+	var class Data
+	for _, class = range data {
+		classifier.Learn(class.Words, bayesian.Class(class.Label))
+	}
+
+	testData, err := getTestData()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, data := range testData {
+		fmt.Printf(`%s\t`, data.Label)
+		for _, word := range data.Words {
+			fmt.Printf(" %s", word)
+		}
+		fmt.Println()
+	}
 
 	scores, likely, _ := classifier.LogScores(
 		[]string{"tall", "girl"},
@@ -139,8 +393,8 @@ func main() {
 
 	fmt.Println(probs, likely)
 
-	// router := gin.Default()
-	// router.GET("/albums", getAlbums)
-	// router.Run(":8080")
-
+	router = gin.Default()
+	router.POST("/analyze", analyze)
+	router.GET("/statistics", statistics)
+	router.Run(":8080")
 }

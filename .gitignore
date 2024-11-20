@@ -1,7 +1,4 @@
-
 *.db
 *.exe
-
 *.json
-
 .DS_Store
