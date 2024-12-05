@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/jbrukh/bayesian"
 	_ "github.com/mattn/go-sqlite3"
@@ -17,7 +18,7 @@ type Database struct {
 }
 
 // setup all db tables
-func (database Database) setupDB() error {
+func (database Database) init() {
 	var db *sql.DB
 	var err error
 	var path string = database.path
@@ -51,19 +52,18 @@ func (database Database) setupDB() error {
 
 	db, err = sql.Open("sqlite3", path)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	defer db.Close()
 	if _, err := db.Exec(Log_table); err != nil {
-		return err
+		log.Fatal(err)
 	}
 	if _, err := db.Exec(Sample_table); err != nil {
-		return err
+		log.Fatal(err)
 	}
 	if _, err := db.Exec(Usage_table); err != nil {
-		return err
+		log.Fatal(err)
 	}
-	return nil
 }
 
 func (database Database) getTestData() ([]Data, error) {
