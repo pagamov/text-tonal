@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"regexp"
-	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -15,21 +13,6 @@ const ()
 type Data struct {
 	Label string   `json:"label"`
 	Words []string `json:"text"`
-}
-
-// for line of text return splitted []string
-// of rus words without trash
-func processText(text string) []string {
-	var words []string
-	// lower text
-	var lower string = strings.ToLower(text)
-	// create re regex filter
-	re := regexp.MustCompile(`[^а-яё]`)
-	// filter words
-	cleaned := re.ReplaceAllString(lower, "")
-	// split string by " "
-	words = strings.Split(cleaned, " ")
-	return words
 }
 
 // func getTrainData() ([]Data, error) {
@@ -43,7 +26,6 @@ func main() {
 	var model Model
 	var api API
 
-	// init all tables for DB
 	database.init()
 
 	model.init(database)

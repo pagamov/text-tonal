@@ -13,7 +13,7 @@ type Model struct {
 
 // get all labels from DB
 
-func (model Model) init(database Database) {
+func (model *Model) init(database Database) {
 	var labels []bayesian.Class
 	var err error
 
@@ -25,7 +25,7 @@ func (model Model) init(database Database) {
 	model.labels = labels
 }
 
-func (model Model) learn(database Database) {
+func (model *Model) learn(database Database) {
 	var class Data
 	data, err := database.getUsage(model.labels)
 	if err != nil {

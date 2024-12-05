@@ -36,16 +36,16 @@ type API struct {
 	router *gin.Engine
 }
 
-func (api API) init() {
+func (api *API) init() {
 	api.router = gin.Default()
 }
 
-func (api API) add() {
+func (api *API) add() {
 	api.router.POST("/analyze", analyze)
 	api.router.GET("/statistics", statistics)
 }
 
-func (api API) start() {
+func (api *API) start() {
 	api.router.Run(":8080")
 }
 

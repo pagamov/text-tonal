@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 
 	"github.com/jbrukh/bayesian"
 	_ "github.com/mattn/go-sqlite3"
@@ -18,7 +20,7 @@ type Database struct {
 }
 
 // setup all db tables
-func (database Database) init() {
+func (database *Database) init() {
 	var db *sql.DB
 	var err error
 	var path string = database.path
@@ -66,7 +68,7 @@ func (database Database) init() {
 	}
 }
 
-func (database Database) getTestData() ([]Data, error) {
+func (database *Database) getTestData() ([]Data, error) {
 	var err error
 	var res []Data = []Data{}
 	var db *sql.DB
@@ -102,7 +104,7 @@ func (database Database) getTestData() ([]Data, error) {
 }
 
 // we get label and return list of all words with this label
-func (database Database) getWordsByLabel(label string) ([]string, error) {
+func (database *Database) getWordsByLabel(label string) ([]string, error) {
 	var res []string
 	var db *sql.DB
 	var querry string
@@ -132,7 +134,7 @@ func (database Database) getWordsByLabel(label string) ([]string, error) {
 }
 
 // get Data struct with map of labels and corresponding list of words
-func (database Database) getUsage(labels []bayesian.Class) ([]Data, error) {
+func (database *Database) getUsage(labels []bayesian.Class) ([]Data, error) {
 	var label bayesian.Class
 	var res []Data = []Data{}
 	var err error
@@ -149,7 +151,7 @@ func (database Database) getUsage(labels []bayesian.Class) ([]Data, error) {
 }
 
 // get all labels of text from db
-func (database Database) getLabels() ([]bayesian.Class, error) {
+func (database *Database) getLabels() ([]bayesian.Class, error) {
 	var res []bayesian.Class
 	var db *sql.DB
 	var rows *sql.Rows
@@ -191,7 +193,7 @@ func (database Database) getLabels() ([]bayesian.Class, error) {
 // 	return database, nil
 // }
 
-// func CloseCon(database Database) error {
+// func CloseCon(database *Database) error {
 // 	var err error
 // 	if database.db != nil {
 // 		err = database.db.Close()
@@ -201,3 +203,18 @@ func (database Database) getLabels() ([]bayesian.Class, error) {
 // 	}
 // 	return nil
 // }
+
+// for line of text return splitted []string
+// of rus words without trash
+func processText(text string) []string {
+	var words []string
+	// lower text
+	var lower string = strings.ToLower(text)
+	// create re regex filter
+	re := regexp.MustCompile(`[^а-яё]`)
+	// filter words
+	cleaned := re.ReplaceAllString(lower, "")
+	// split string by " "
+	words = strings.Split(cleaned, " ")
+	return words
+}
