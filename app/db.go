@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/jbrukh/bayesian"
-	_ "github.com/mattn/go-sqlite3"
+	// _ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // Database class
