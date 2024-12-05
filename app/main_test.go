@@ -9,6 +9,8 @@ import (
 )
 
 func Test_getLabels(t *testing.T) {
+
+	var database Database = Database{path: "../db/main.db", db: nil, rows: nil}
 	tests := []struct {
 		name    string
 		want    []bayesian.Class
@@ -18,7 +20,7 @@ func Test_getLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getLabels()
+			got, err := database.getLabels()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getLabels() error = %v, wantErr %v", err, tt.wantErr)
 				return

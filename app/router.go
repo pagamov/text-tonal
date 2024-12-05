@@ -6,14 +6,51 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// this file we handle api requests
-// to use them in main.go file
-//
-//
+// can be multiple labels for one word
+type Info struct {
+	Label string `json:"label"`
+	Value int64  `json:"value"`
+}
+
+// for word we got N info marks for each label
+type Word struct {
+	Word string `json:"word"`
+	Info []Info `json:"info"`
+}
+
+type Analyz struct {
+	Count int64  `json:"count"`
+	Label string `json:"label"`
+	Words []Word `json:"words"`
+}
+
+type Statistics struct {
+	Date  string `json:"date"`
+	Text  string `json:"text"`
+	Count int64  `json:"count"`
+	Label string `json:"label"`
+	Words []Word `json:"words"`
+}
+
+type API struct {
+	router *gin.Engine
+}
+
+func (api API) init() {
+	api.router = gin.Default()
+}
+
+func (api API) add() {
+	api.router.POST("/analyze", analyze)
+	api.router.GET("/statistics", statistics)
+}
+
+func (api API) start() {
+	api.router.Run(":8080")
+}
 
 func analyze(c *gin.Context) {
 	// 	POST API/analyze?text=some text to parse
-
 	// 	RES =  {
 	//         "count" : "Number of words : Int64",
 	//         "label" : "soft max label of text : String",
