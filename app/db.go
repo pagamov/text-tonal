@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/jbrukh/bayesian"
-	// _ "github.com/mattn/go-sqlite3"
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
+	// _ "modernc.org/sqlite"
 )
 
 // Database class
@@ -67,6 +67,7 @@ func (database *Database) init() {
 	if _, err := db.Exec(Usage_table); err != nil {
 		log.Fatal(err)
 	}
+	log.Print("db inited")
 }
 
 func (database *Database) getTestData() ([]Data, error) {
@@ -212,7 +213,7 @@ func processText(text string) []string {
 	// lower text
 	var lower string = strings.ToLower(text)
 	// create re regex filter
-	re := regexp.MustCompile(`[^а-яё]`)
+	re := regexp.MustCompile(`[^а-яё\s]+`)
 	// filter words
 	cleaned := re.ReplaceAllString(lower, "")
 	// split string by " "
