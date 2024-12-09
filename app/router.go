@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,13 +41,13 @@ func (api *API) init() {
 	api.router = gin.Default()
 }
 
-func (api *API) add() {
+func (api *API) addMethod() {
 	api.router.POST("/analyze", analyze)
 	api.router.GET("/statistics", statistics)
 }
 
-func (api *API) start() {
-	api.router.Run(":8080")
+func (api *API) start(port int) {
+	api.router.Run(fmt.Sprintf(":%s", string(port)))
 }
 
 func analyze(c *gin.Context) {

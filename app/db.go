@@ -20,6 +20,76 @@ type Database struct {
 	rows *sql.Rows
 }
 
+func transferLogData(sqliteDB, pgDB *sql.DB) {
+	rows, err := sqliteDB.Query("SELECT id, date, text, label, info FROM Log_table")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int
+		var date, text, label, info string
+		if err := rows.Scan(&id, &date, &text, &label, &info); err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = pgDB.Exec("INSERT INTO log_table (id, date, text, label, info) VALUES ($1, $2, $3, $4, $5)",
+			id, date, text, label, info)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func transferSampleData(sqliteDB, pgDB *sql.DB) {
+	rows, err := sqliteDB.Query("SELECT id, text_en, text_ru, label, processed FROM Sample_table")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int
+		var textEn, label string
+		var textRu sql.NullString
+		var processed int
+
+		if err := rows.Scan(&id, &textEn, &textRu, &label, &processed); err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = pgDB.Exec("INSERT INTO sample_table (id, text_en, text_ru, label, processed) VALUES ($1, $2, $3, $4, $5)",
+			id, textEn, textRu, label, processed)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func transferUsageData(sqliteDB, pgDB *sql.DB) {
+	rows, err := sqliteDB.Query("SELECT id, word, language, label, usage FROM Usage_table")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int
+		var word, language, label string
+		var usage int
+		if err := rows.Scan(&id, &word, &language, &label, &usage); err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = pgDB.Exec("INSERT INTO usage_table (id, word, language, label, usage) VALUES ($1, $2, $3, $4, $5)",
+			id, word, language, label, usage)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 // setup all db tables
 func (database *Database) init() {
 	var db *sql.DB
@@ -76,7 +146,7 @@ func (database *Database) getTestData() ([]Data, error) {
 	var db *sql.DB
 	var rows *sql.Rows
 	var querry string = `
-		SELECT label, text_ru from Sample_table where text_ru is not NULL;
+		SELECT label, text_en from Sample_table where text_en is not NULL;
 	`
 	var path string = database.path
 	db, err = sql.Open("sqlite3", path)
@@ -206,6 +276,47 @@ func (database *Database) getLabels() ([]bayesian.Class, error) {
 // 	return nil
 // }
 
+func (database *Database) replaceLabels() {
+	var db *sql.DB
+	var err error
+	var path string = database.path
+
+	db, err = sql.Open("sqlite3", path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	q1 := `UPDATE Sample_table SET label = 'neutral' WHERE label = 'empty' or 'relief' or 'surprise' or 'worry' or 'boredom';`
+	q2 := `UPDATE Sample_table SET label = 'good' WHERE label = 'enthusiasm' or 'fun' or 'happiness' or 'joy' or 'love';`
+	q3 := `UPDATE Sample_table SET label = 'bad' WHERE label = 'anger' or 'fear' or 'hate' or 'sadness';`
+
+	if _, err := db.Exec(q1); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := db.Exec(q2); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := db.Exec(q3); err != nil {
+		log.Fatal(err)
+	}
+
+	q4 := `UPDATE Usage_table SET label = 'neutral' WHERE label = 'empty' or 'relief' or 'surprise' or 'worry' or 'boredom';`
+	q5 := `UPDATE Usage_table SET label = 'good' WHERE label = 'enthusiasm' or 'fun' or 'happiness' or 'joy' or 'love';`
+	q6 := `UPDATE Usage_table SET label = 'bad' WHERE label = 'anger' or 'fear' or 'hate' or 'sadness';`
+
+	if _, err := db.Exec(q4); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := db.Exec(q5); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := db.Exec(q6); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
 // for line of text return splitted []string
 // of rus words without trash
 func processText(text string) []string {
@@ -213,7 +324,7 @@ func processText(text string) []string {
 	// lower text
 	var lower string = strings.ToLower(text)
 	// create re regex filter
-	re := regexp.MustCompile(`[^а-яё\s]+`)
+	re := regexp.MustCompile(`[^a-z\s]+`)
 	// filter words
 	cleaned := re.ReplaceAllString(lower, "")
 	// split string by " "
