@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/jbrukh/bayesian"
 	_ "github.com/mattn/go-sqlite3"
@@ -13,6 +14,10 @@ import (
 )
 
 var (
+	database Database = Database{path: "../db/main.db", db: nil, rows: nil}
+
+	model Model
+
 	LogTableSQL = `CREATE TABLE IF NOT EXISTS "log_table" (
         "id" INTEGER PRIMARY KEY,
         "date" TEXT,
@@ -71,13 +76,17 @@ func main() {
 
 	fmt.Println(likely, class)
 
-	var database Database = Database{path: "../db/main.db", db: nil, rows: nil}
-	var model Model
-
 	// var api API
 
 	database.init()
 	database.replaceLabels()
+
+	labels, _ := database.getLabels()
+	for i, label := range labels {
+		log.Println(i, label)
+	}
+
+	// log.Fatal()
 
 	model.init(database)
 	// _, test := model.learn(database, 0.9)
@@ -95,11 +104,7 @@ func main() {
 	// shuffleSlice(testData)
 	// fmt.Println(testData[0].Words)
 
-	labels := model.labels
-	for i, label := range labels {
-		fmt.Println(i, label)
-	}
-	fmt.Println("-/-/-/-/-")
+	// labels := model.labels
 
 	// for _, data := range test {
 	// 	fmt.Printf(`%s\t`, data.Label)

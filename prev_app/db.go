@@ -128,6 +128,7 @@ func (database *Database) init() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
 	if _, err := db.Exec(Log_table); err != nil {
 		log.Fatal(err)
 	}
@@ -287,9 +288,9 @@ func (database *Database) replaceLabels() {
 	}
 	defer db.Close()
 
-	q1 := `UPDATE Sample_table SET label = 'neutral' WHERE label = 'empty' or 'relief' or 'surprise' or 'worry' or 'boredom';`
-	q2 := `UPDATE Sample_table SET label = 'good' WHERE label = 'enthusiasm' or 'fun' or 'happiness' or 'joy' or 'love';`
-	q3 := `UPDATE Sample_table SET label = 'bad' WHERE label = 'anger' or 'fear' or 'hate' or 'sadness';`
+	q1 := `UPDATE Sample_table SET label = 'neutral' WHERE label in ('empty' , 'relief' , 'surprise' , 'worry' , 'boredom');`
+	q2 := `UPDATE Sample_table SET label = 'good' WHERE label in ('enthusiasm' , 'fun' , 'happiness' , 'joy' , 'love');`
+	q3 := `UPDATE Sample_table SET label = 'bad' WHERE label in ('anger' , 'fear' , 'hate' , 'sadness');`
 
 	if _, err := db.Exec(q1); err != nil {
 		log.Fatal(err)
@@ -301,9 +302,9 @@ func (database *Database) replaceLabels() {
 		log.Fatal(err)
 	}
 
-	q4 := `UPDATE Usage_table SET label = 'neutral' WHERE label = 'empty' or 'relief' or 'surprise' or 'worry' or 'boredom';`
-	q5 := `UPDATE Usage_table SET label = 'good' WHERE label = 'enthusiasm' or 'fun' or 'happiness' or 'joy' or 'love';`
-	q6 := `UPDATE Usage_table SET label = 'bad' WHERE label = 'anger' or 'fear' or 'hate' or 'sadness';`
+	q4 := `UPDATE Usage_table SET label = 'neutral' WHERE label in ('empty' , 'relief' , 'surprise' , 'worry' , 'boredom');`
+	q5 := `UPDATE Usage_table SET label = 'good' WHERE label in ('enthusiasm' , 'fun' , 'happiness' , 'joy' , 'love');`
+	q6 := `UPDATE Usage_table SET label = 'bad' WHERE label in ('anger' , 'fear' , 'hate' , 'sadness');`
 
 	if _, err := db.Exec(q4); err != nil {
 		log.Fatal(err)

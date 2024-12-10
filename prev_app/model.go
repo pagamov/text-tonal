@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -22,6 +23,9 @@ func (model *Model) init(database Database) {
 	labels, err = database.getLabels()
 	if err != nil {
 		log.Fatal(err)
+	}
+	for i, l := range labels {
+		fmt.Print(i, l)
 	}
 	model.classifier = bayesian.NewClassifier(labels...)
 	model.labels = labels
