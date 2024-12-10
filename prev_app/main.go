@@ -18,6 +18,8 @@ var (
 
 	model Model
 
+	api API
+
 	LogTableSQL = `CREATE TABLE IF NOT EXISTS "log_table" (
         "id" INTEGER PRIMARY KEY,
         "date" TEXT,
@@ -174,7 +176,7 @@ func main() {
 	// 	fmt.Scan(input)
 	// 	model.classifier.Observe(input)
 	// }
-	// api.init()
-	// api.addMethod()
-	// api.start()
+	api.init()
+	api.addMethod()
+	api.start("8080")
 }

@@ -55,8 +55,8 @@ func (api *API) addMethod() {
 	api.router.POST("/db/transfer_sqlite_to_posgresql", transfer_sqlite_to_posgresql)
 }
 
-func (api *API) start(port int) {
-	api.router.Run(fmt.Sprintf(":%s", string(port)))
+func (api *API) start(port string) {
+	api.router.Run(fmt.Sprintf(":%s", port))
 }
 
 func analyze(c *gin.Context) {
