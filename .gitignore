@@ -2,3 +2,4 @@
 *.exe
 *.json
 .DS_Store
+myenv/

@@ -1,81 +1,64 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"time"
-
-	"github.com/jbrukh/bayesian"
-	"golang.org/x/exp/rand"
+	"gorgonia.org/gorgonia"
+	"gorgonia.org/tensor"
 )
 
-type Model struct {
-	classifier *bayesian.Classifier
-	labels     []bayesian.Class
-}
+func createBagOfWords(text string) map[string]int {
+	words := strings.Fields(text)
+	bow := make(map[string]int)
 
-// get all labels from DB
-
-func (model *Model) init(database Database) {
-	var labels []bayesian.Class
-	var err error
-
-	labels, err = database.getLabels()
-	if err != nil {
-		log.Fatal(err)
-	}
-	model.classifier = bayesian.NewClassifier(labels...)
-	model.labels = labels
-}
-
-// shuffleSlice shuffles the elements of a slice.
-func shuffleSlice(slice []Data) {
-	rand.Seed(uint64(time.Now().UnixNano())) // Seed the random number generator
-	for i := range slice {
-		j := rand.Intn(i + 1)                   // Generate a random index
-		slice[i], slice[j] = slice[j], slice[i] // Swap elements
-	}
-}
-
-func (model *Model) learn(database Database) {
-	var class Data
-	data, err := database.getUsage(model.labels)
-	if err != nil {
-		log.Fatal(err)
+	for _, word := range words {
+		bow[word]++
 	}
 
-	shuffleSlice(data)
-
-	// Calculate the number of elements to take (90%)
-	// ninetyPercentCount := int(1 * float64(len(data)))
-
-	// Take the first 90% of the shuffled array
-	// train := data[:ninetyPercentCount]
-	// test := data[ninetyPercentCount:]
-
-	for _, class = range data {
-		model.classifier.Learn(class.Words, bayesian.Class(class.Label))
-	}
-	log.Println("model learned")
+	return bow
 }
 
-func (model *Model) learnNew(database Database, ratio float64) []Data {
-	data, err := database.getTestData()
-	if err != nil {
+// Define the structure of the neural network
+func createModel(g *gorgonia.ExprGraph, inputSize, numClasses int) (*gorgonia.Node, *gorgonia.Node) {
+	// Input layer
+	x := gorgonia.NewMatrix(g, tensor.Float32, gorgonia.WithShape(-1, inputSize), gorgonia.WithName("x"))
+
+	// Hidden layer
+	w0 := gorgonia.NewMatrix(g, tensor.Float32, gorgonia.WithShape(inputSize, 10), gorgonia.WithName("w0"), gorgonia.WithValue(tensor.New(tensor.WithShape(inputSize, 10), tensor.WithBacking(make([]float32, inputSize*10)))))
+	b0 := gorgonia.NewMatrix(g, tensor.Float32, gorgonia.WithShape(1, 10), gorgonia.WithName("b0"), gorgonia.WithValue(tensor.New(tensor.WithShape(1, 10), tensor.WithBacking(make([]float32, 10)))))
+	h0 := gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Mul(x, w0)), b0))
+	h0Act := gorgonia.Must(gorgonia.Rectify(h0)) // Activation function
+
+	// Output layer
+	w1 := gorgonia.NewMatrix(g, tensor.Float32, gorgonia.WithShape(10, numClasses), gorgonia.WithName("w1"), gorgonia.WithValue(tensor.New(tensor.WithShape(10, numClasses), tensor.WithBacking(make([]float32, 10*numClasses)))))
+	b1 := gorgonia.NewMatrix(g, tensor.Float32, gorgonia.WithShape(1, numClasses), gorgonia.WithName("b1"), gorgonia.WithValue(tensor.New(tensor.WithShape(1, numClasses), tensor.WithBacking(make([]float32, numClasses)))))
+	logits := gorgonia.Must(gorgonia.Add(gorgonia.Must(gorgonia.Mul(h0Act, w1)), b1))
+	prob := gorgonia.Must(gorgonia.SoftMax(logits))
+
+	return x, prob
+}
+
+func main() {
+	g := gorgonia.NewGraph()
+
+	// Define input size and number of classes
+	inputSize := 100 // Example input size (e.g., word embeddings)
+	numClasses := 5  // Example number of emotion classes
+
+	x, prob := createModel(g, inputSize, numClasses)
+
+	// Example input data (replace with actual data)
+	inputData := tensor.New(tensor.WithShape(1, inputSize), tensor.WithBacking(make([]float32, inputSize)))
+	gorgonia.WithValue(inputData)(x)
+
+	// Create a VM to run the graph
+	vm := gorgonia.NewTapeMachine(g)
+
+	// Run the model
+	if err := vm.RunAll(); err != nil {
 		log.Fatal(err)
 	}
 
-	shuffleSlice(data)
-
-	// Calculate the number of elements to take (90%)
-	ninetyPercentCount := int(ratio * float64(len(data)))
-
-	// Take the first 90% of the shuffled array
-	train := data[:ninetyPercentCount]
-	test := data[ninetyPercentCount:]
-
-	for _, t := range train {
-		model.classifier.Learn(t.Words, bayesian.Class(t.Label))
-	}
-	log.Println("model learned new")
-	return test
+	// Output the probabilities
+	fmt.Println("Predicted probabilities:", prob.Value())
 }
