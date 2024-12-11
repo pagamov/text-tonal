@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
+
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
