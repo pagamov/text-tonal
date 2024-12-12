@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -16,7 +15,7 @@ type Model struct {
 
 // get all labels from DB
 
-func (model *Model) init(database Database) {
+func (model *Model) init(database DatabaseSQLite) {
 	var labels []bayesian.Class
 	var err error
 
@@ -24,9 +23,9 @@ func (model *Model) init(database Database) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, l := range labels {
-		fmt.Print(i, l)
-	}
+	// for i, l := range labels {
+	// 	fmt.Println(i, l)
+	// }
 	model.classifier = bayesian.NewClassifier(labels...)
 	model.labels = labels
 }
@@ -40,7 +39,7 @@ func shuffleSlice(slice []Data) {
 	}
 }
 
-func (model *Model) learn(database Database) {
+func (model *Model) learn(database DatabaseSQLite) {
 	var class Data
 	data, err := database.getUsage(model.labels)
 	if err != nil {
@@ -62,7 +61,7 @@ func (model *Model) learn(database Database) {
 	log.Println("model learned")
 }
 
-func (model *Model) learnNew(database Database, ratio float64) []Data {
+func (model *Model) learnNew(database DatabaseSQLite, ratio float64) []Data {
 	data, err := database.getTestData()
 	if err != nil {
 		log.Fatal(err)

@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	database Database = Database{path: "../db/main.db", db: nil, rows: nil}
+	databaseSqlite DatabaseSQLite = DatabaseSQLite{path: "../db/main.db", db: nil, rows: nil}
 
 	model Model
 
@@ -62,43 +62,43 @@ type Data struct {
 
 func main() {
 
-	fmt.Println(processText("я тут сижу один в комнате"))
-	classifier := bayesian.NewClassifier(Good, Bad)
-	classifier.Learn([]string{"я", "хороший", "человек"}, Good)
-	classifier.Learn([]string{"я", "плохой", "человек"}, Bad)
-	classifier.ConvertTermsFreqToTfIdf()
+	// fmt.Println(processText("я тут сижу один в комнате"))
+	// classifier := bayesian.NewClassifier(Good, Bad)
+	// classifier.Learn([]string{"я", "хороший", "человек"}, Good)
+	// classifier.Learn([]string{"я", "плохой", "человек"}, Bad)
+	// classifier.ConvertTermsFreqToTfIdf()
 
-	_, likely, _ := classifier.LogScores(
-		[]string{"ты", "хорошая", "мама"},
-	)
+	// _, likely, _ := classifier.LogScores(
+	// 	[]string{"ты", "хорошая", "мама"},
+	// )
 
-	_, class, _ := classifier.ProbScores(
-		[]string{"ты", "хорошая", "мама"},
-	)
+	// _, class, _ := classifier.ProbScores(
+	// 	[]string{"ты", "хорошая", "мама"},
+	// )
 
-	fmt.Println(likely, class)
+	// fmt.Println(likely, class)
 
 	// var api API
 
-	database.init()
-	database.replaceLabels()
+	databaseSqlite.init()
+	databaseSqlite.replaceLabels()
 
-	labels, _ := database.getLabels()
+	labels, _ := databaseSqlite.getLabels()
 	for i, label := range labels {
 		log.Println(i, label)
 	}
 
 	// log.Fatal()
 
-	model.init(database)
-	// _, test := model.learn(database, 0.9)
-	// model.learn(database)
-	testData := model.learnNew(database, 0.8)
+	model.init(databaseSqlite)
+	// _, test := model.learn(databaseSqlite, 0.9)
+	// model.learn(databaseSqlite)
+	testData := model.learnNew(databaseSqlite, 0.8)
 
 	model.classifier.ConvertTermsFreqToTfIdf()
 	// fmt.Print(test)
 
-	// testData, err := database.getTestData()
+	// testData, err := databaseSqlite.getTestData()
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
@@ -176,7 +176,7 @@ func main() {
 	// 	fmt.Scan(input)
 	// 	model.classifier.Observe(input)
 	// }
-	api.init()
-	api.addMethod()
-	api.start("8080")
+	// api.init()
+	// api.addMethod()
+	// api.start("8080")
 }

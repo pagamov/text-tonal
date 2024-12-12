@@ -311,7 +311,7 @@ func transfer_sqlite_to_posgresql(c *gin.Context) {
 	}
 	fmt.Println("Successfully connected to the database!")
 
-	_, err = pgDB.Exec(`	DO $$ 
+	_, err = pgDB.Exec(`DO $$ 
 DECLARE 
     r RECORD; 
 BEGIN 

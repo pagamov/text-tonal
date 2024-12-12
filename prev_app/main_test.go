@@ -10,7 +10,7 @@ import (
 
 func Test_getLabels(t *testing.T) {
 
-	var database Database = Database{path: "../db/main.db", db: nil, rows: nil}
+	var database DatabaseSQLite = DatabaseSQLite{path: "../db/main.db", db: nil, rows: nil}
 	tests := []struct {
 		name    string
 		want    []bayesian.Class
