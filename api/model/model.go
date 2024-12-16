@@ -1,4 +1,4 @@
-package main
+package model
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ type Model struct {
 	w2v word2vec.Model
 }
 
-func (model *Model) test(testData []data.Data) {
+func (model *Model) Test(testData []data.Data) {
 
 	var all int = 0
 	var correct int = 0
@@ -61,11 +61,11 @@ func (model *Model) test(testData []data.Data) {
 
 // get all labels from DB
 
-func (model *Model) init(database db.DatabaseSQLite) {
+func (model *Model) Init(database db.DatabaseSQLite) {
 	var labels []bayesian.Class
 	var err error
 
-	labels, err = database.getLabels()
+	labels, err = database.GetLabels()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func shuffleSlice(slice []data.Data) {
 
 func (model *Model) learn(database db.DatabaseSQLite) {
 	var class data.Data
-	data, err := database.getUsage(model.labels)
+	data, err := database.GetUsage(model.labels)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -130,8 +130,8 @@ func (model *Model) learn(database db.DatabaseSQLite) {
 	log.Println("model learned")
 }
 
-func (model *Model) learnNew(database db.DatabaseSQLite, ratio float64, convert bool) []Data {
-	data, err := database.getTestData()
+func (model *Model) learnNew(database db.DatabaseSQLite, ratio float64, convert bool) []data.Data {
+	data, err := database.GetTestData()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -166,8 +166,8 @@ func (model *Model) embed(data []data.Data) []data.Data {
 	return data
 }
 
-func (model *Model) learnWithBag(database db.DatabaseSQLite, ratio float64, convert bool) []data.Data {
-	data, err := database.getTestData()
+func (model *Model) LearnWithBag(database db.DatabaseSQLite, ratio float64, convert bool) []data.Data {
+	data, err := database.GetTestData()
 	if err != nil {
 		log.Fatal(err)
 	}

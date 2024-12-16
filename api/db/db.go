@@ -1,6 +1,7 @@
 package db
 
 import (
+	"api/data"
 	"database/sql"
 	"fmt"
 	"log"
@@ -11,12 +12,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	// _ "modernc.org/sqlite"
 )
-
-type Data struct {
-	Label string    `json:"label"`
-	Words []string  `json:"text"`
-	Vec   []float32 `json:"vec"`
-}
 
 const (
 	LogTableSQL = `CREATE TABLE IF NOT EXISTS "log_table" (
@@ -52,14 +47,19 @@ type DatabaseSQLite struct {
 	rows *sql.Rows
 }
 
-func (db *DatabaseSQLite) printLabels() {
-	labels, _ := db.getLabels()
+func CreateDatabaseSQLite(path string) *DatabaseSQLite {
+	var res DatabaseSQLite = DatabaseSQLite{path: path, db: nil, rows: nil}
+	return &res
+}
+
+func (db *DatabaseSQLite) PrintLabels() {
+	labels, _ := db.GetLabels()
 	for i, label := range labels {
 		log.Println(i, label)
 	}
 }
 
-func transferLogData(sqliteDB, pgDB *sql.DB) {
+func TransferLogData(sqliteDB, pgDB *sql.DB) {
 	rows, err := sqliteDB.Query("SELECT id, date, text, label, info FROM Log_table")
 	if err != nil {
 		log.Fatal(err)
@@ -81,7 +81,7 @@ func transferLogData(sqliteDB, pgDB *sql.DB) {
 	}
 }
 
-func transferSampleData(sqliteDB, pgDB *sql.DB) {
+func TransferSampleData(sqliteDB, pgDB *sql.DB) {
 	rows, err := sqliteDB.Query("SELECT id, text_en, text_ru, label, processed FROM Sample_table")
 	if err != nil {
 		log.Fatal(err)
@@ -106,7 +106,7 @@ func transferSampleData(sqliteDB, pgDB *sql.DB) {
 	}
 }
 
-func transferUsageData(sqliteDB, pgDB *sql.DB) {
+func TransferUsageData(sqliteDB, pgDB *sql.DB) {
 	rows, err := sqliteDB.Query("SELECT id, word, language, label, usage FROM Usage_table")
 	if err != nil {
 		log.Fatal(err)
@@ -130,7 +130,7 @@ func transferUsageData(sqliteDB, pgDB *sql.DB) {
 }
 
 // setup all db tables
-func (database *DatabaseSQLite) init() {
+func (database *DatabaseSQLite) Init() {
 	var db *sql.DB
 	var err error
 	var path string = database.path
@@ -180,9 +180,9 @@ func (database *DatabaseSQLite) init() {
 	log.Print("db inited")
 }
 
-func (database *DatabaseSQLite) getTestData() ([]Data, error) {
+func (database *DatabaseSQLite) GetTestData() ([]data.Data, error) {
 	var err error
-	var res []Data = []Data{}
+	var res []data.Data = []data.Data{}
 	var db *sql.DB
 	var rows *sql.Rows
 	var querry string = `
@@ -191,13 +191,13 @@ func (database *DatabaseSQLite) getTestData() ([]Data, error) {
 	var path string = database.path
 	db, err = sql.Open("sqlite3", path)
 	if err != nil {
-		return []Data{}, err
+		return []data.Data{}, err
 	}
 	defer db.Close()
 
 	rows, err = db.Query(querry)
 	if err != nil {
-		return []Data{}, err
+		return []data.Data{}, err
 	}
 	defer rows.Close()
 
@@ -207,10 +207,10 @@ func (database *DatabaseSQLite) getTestData() ([]Data, error) {
 		var processedText []string
 		err = rows.Scan(&label, &text)
 		if err != nil {
-			return []Data{}, err
+			return []data.Data{}, err
 		}
-		processedText = processText(text)
-		res = append(res, Data{Label: label, Words: processedText})
+		processedText = ProcessText(text)
+		res = append(res, data.Data{Label: label, Words: processedText})
 	}
 	return res, nil
 }
@@ -246,24 +246,24 @@ func (database *DatabaseSQLite) getWordsByLabel(label string) ([]string, error) 
 }
 
 // get Data struct with map of labels and corresponding list of words
-func (database *DatabaseSQLite) getUsage(labels []bayesian.Class) ([]Data, error) {
+func (database *DatabaseSQLite) GetUsage(labels []bayesian.Class) ([]data.Data, error) {
 	var label bayesian.Class
-	var res []Data = []Data{}
+	var res []data.Data = []data.Data{}
 	var err error
 	var words []string
 
 	for _, label = range labels {
 		words, err = database.getWordsByLabel(string(label))
 		if err != nil {
-			return []Data{}, err
+			return []data.Data{}, err
 		}
-		res = append(res, Data{Label: string(label), Words: words})
+		res = append(res, data.Data{Label: string(label), Words: words})
 	}
 	return res, nil
 }
 
 // get all labels of text from db
-func (database *DatabaseSQLite) getLabels() ([]bayesian.Class, error) {
+func (database *DatabaseSQLite) GetLabels() ([]bayesian.Class, error) {
 	var res []bayesian.Class
 	var db *sql.DB
 	var rows *sql.Rows
@@ -316,7 +316,7 @@ func (database *DatabaseSQLite) getLabels() ([]bayesian.Class, error) {
 // 	return nil
 // }
 
-func (database *DatabaseSQLite) replaceLabels() {
+func (database *DatabaseSQLite) ReplaceLabels() {
 	var db *sql.DB
 	var err error
 	var path string = database.path
@@ -359,7 +359,7 @@ func (database *DatabaseSQLite) replaceLabels() {
 
 // for line of text return splitted []string
 // of rus words without trash
-func processText(text string) []string {
+func ProcessText(text string) []string {
 	var words []string
 	// lower text
 	var lower string = strings.ToLower(text)

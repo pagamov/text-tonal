@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"api/db"
@@ -41,22 +41,22 @@ type Statistics struct {
 	Words []Word `json:"words"`
 }
 
-type API struct {
+type Router struct {
 	router *gin.Engine
 }
 
-func (api *API) init() {
+func (api *Router) Init() {
 	api.router = gin.Default()
 }
 
-func (api *API) addMethod() {
+func (api *Router) AddMethod() {
 	api.router.POST("/analyze", analyze)
 	api.router.GET("/statistics", statistics)
 	api.router.POST("/db/import_from_old", import_from_old)
 	api.router.POST("/db/transfer_sqlite_to_posgresql", transfer_sqlite_to_posgresql)
 }
 
-func (api *API) start(port string) {
+func (api *Router) Start(port string) {
 	api.router.Run(fmt.Sprintf(":%s", port))
 }
 
@@ -355,17 +355,17 @@ func transfer_sqlite_to_posgresql(c *gin.Context) {
 	defer sqliteDB.Close()
 
 	// Transfer data from Log_table
-	db.transferLogData(sqliteDB, pgDB)
+	db.TransferLogData(sqliteDB, pgDB)
 
 	// log.Print("Log done")
 
 	// Transfer data from Sample_table
-	db.transferSampleData(sqliteDB, pgDB)
+	db.TransferSampleData(sqliteDB, pgDB)
 
 	// log.Print("Sample done")
 
 	// Transfer data from Usage_table
-	db.transferUsageData(sqliteDB, pgDB)
+	db.TransferUsageData(sqliteDB, pgDB)
 
 	// log.Print("Usage done")
 

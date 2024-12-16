@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api/db"
 	"reflect"
 	"testing"
 
@@ -8,9 +9,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var (
+	database db.DatabaseSQLite
+)
+
 func Test_getLabels(t *testing.T) {
 
-	var database DatabaseSQLite = DatabaseSQLite{path: "../db/main.db", db: nil, rows: nil}
+	database = *db.CreateDatabaseSQLite("../db/main.db")
+
 	tests := []struct {
 		name    string
 		want    []bayesian.Class
@@ -20,7 +26,7 @@ func Test_getLabels(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := database.getLabels()
+			got, err := database.GetLabels()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getLabels() error = %v, wantErr %v", err, tt.wantErr)
 				return

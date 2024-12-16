@@ -1,6 +1,9 @@
 package main
 
 import (
+	"api/db"
+	"api/model"
+	"api/router"
 	"fmt"
 
 	"github.com/jbrukh/bayesian"
@@ -11,36 +14,28 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const ()
-
-// label + array of strings
-type Data struct {
-	Label string    `json:"label"`
-	Words []string  `json:"text"`
-	Vec   []float32 `json:"vec"`
-}
+var (
+	TextModel      model.Model
+	api            router.Router
+	databaseSqlite db.DatabaseSQLite
+)
 
 func main() {
 
-	var databaseSqlite DatabaseSQLite = DatabaseSQLite{path: "../db/main.db", db: nil, rows: nil}
+	databaseSqlite = *db.CreateDatabaseSQLite("../db/main.db")
+	databaseSqlite.Init()
+	databaseSqlite.ReplaceLabels()
+	databaseSqlite.PrintLabels()
 
-	var model Model
+	TextModel.Init(databaseSqlite)
 
-	var api API
+	testData := TextModel.LearnWithBag(databaseSqlite, 0.8, true)
 
-	databaseSqlite.init()
-	databaseSqlite.replaceLabels()
-	databaseSqlite.printLabels()
+	TextModel.Test(testData)
 
-	model.init(databaseSqlite)
-
-	testData := model.learnWithBag(databaseSqlite, 0.8, true)
-
-	model.test(testData)
-
-	api.init()
-	api.addMethod()
-	api.start("8080")
+	api.Init()
+	api.AddMethod()
+	api.Start("8080")
 }
 
 func testSimpleModel() {
@@ -48,7 +43,7 @@ func testSimpleModel() {
 	var Good bayesian.Class = "good"
 	var Bad bayesian.Class = "bad"
 
-	fmt.Println(processText("я тут сижу один в комнате"))
+	fmt.Println(db.ProcessText("я тут сижу один в комнате"))
 	classifier := bayesian.NewClassifier(Good, Bad)
 	classifier.Learn([]string{"я", "хороший", "человек"}, Good)
 	classifier.Learn([]string{"я", "плохой", "человек"}, Bad)
