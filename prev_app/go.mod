@@ -3,6 +3,7 @@ module pagamov/api
 go 1.22.3
 
 require (
+	github.com/fogfish/word2vec v0.0.0-20240719202529-86d9af74f0ca
 	github.com/gin-gonic/gin v1.10.0
 	github.com/jbrukh/bayesian v0.0.0-20231117143245-13ae6f916c7a
 	github.com/jmoiron/sqlx v1.4.0
