@@ -1,22 +1,44 @@
-echo "golang import get";
+# docker main app
+# -----------------------------
+cd app/
+docker build -t app .
+docker run -d -p 8080:8080 app
+cd ..
+docker ps -q --filter "ancestor=app" | xargs -r echo "docker is up [app]"
+# -----------------------------
 
-go get github.com/gin-gonic/gin;
-go get github.com/jbrukh/bayesian;
+# docker posgresql
+# -----------------------------
+cd db/
+docker build -t db .
+docker run -d -p 5432:5432 db
+cd ..
+docker ps -q --filter "ancestor=db" | xargs -r echo "docker is up [db]"
+# -----------------------------
 
+# now setup db and transfer data to posgresql
+# -----------------------------
+echo "[Copy backup data]"
+cp ./backup/main.db.zip_part_* ./db/
+rm db/main.db
+echo "[Forming complete file]"
+python3.12 ./db/main.py
+echo "[Copy\`ing database]"
+cd db/
+go get github.com/mattn/go-sqlite3
+go get github.com/lib/pq
+go mod tidy
+go run main.go
+pgloader sqlite://main.db pgsql://pagamov:multipass@localhost/database
+rm main.db
+cd ..
+# -----------------------------
 
-echo "run build docker for main go app"
+# docker redis
+# -----------------------------
+docker pull redis:latest
+docker run -d -p 6379:6379 redis:latest
+docker ps -q --filter "ancestor=redis:latest" | xargs -r echo "docker is up [redis]"
+# -----------------------------
 
-# RUN CGO_ENABLED=0 GOOS=linux go build -o /main main.go
-
-# go build GOOS=linux 
-
-# docker build -f app/main.Dockerfile -t main:v1 .
-
-echo "setup postgresql for mac"
-
-brew install postgresql
-
-# pg_ctl -D /usr/local/opt/postgresql@14 start
-
-/usr/local/opt/postgresql@14/bin/postgres -D /usr/local/var/postgresql@14
-
+docker ps
