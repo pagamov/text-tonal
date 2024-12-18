@@ -1,8 +1,8 @@
 FROM golang:alpine
 WORKDIR /app
-COPY app/main.go .
-COPY app/go.mod .
-COPY app/go.sum .
+COPY main.go .
+COPY go.mod .
+COPY go.sum .
 RUN go build -o main main.go
 
 ARG DEFAULT_PORT=8080

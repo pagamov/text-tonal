@@ -3,10 +3,9 @@ package model
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
-	"github.com/fogfish/word2vec"
+	// "github.com/fogfish/word2vec"
 	"github.com/jbrukh/bayesian"
 	"golang.org/x/exp/rand"
 
@@ -21,7 +20,7 @@ type Model struct {
 	// llm      *openai.LLM
 	// embedder *embeddings.EmbedderImpl
 
-	w2v word2vec.Model
+	// w2v word2vec.Model
 }
 
 func (model *Model) Test(testData []data.Data) {
@@ -36,11 +35,11 @@ func (model *Model) Test(testData []data.Data) {
 		}
 
 		_, likely, _ := model.classifier.LogScores(
-			stringSlice1,
+			data.Words,
 		)
 
 		_, class, _ := model.classifier.ProbScores(
-			stringSlice1,
+			data.Words,
 		)
 
 		if data.Label == string(model.labels[likely]) || data.Label == string(model.labels[class]) {
@@ -86,10 +85,10 @@ func (model *Model) Init(database db.DatabaseSQLite) {
 	// 	log.Fatal(err)
 	// }
 
-	model.w2v, err = word2vec.Load("wap-v300w5e5s1h005-en.bin", 300)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// model.w2v, err = word2vec.Load("wap-v300w5e5s1h005-en.bin", 300)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// _ = embs
 	// for i, l := range labels {
@@ -106,6 +105,42 @@ func shuffleSlice(slice []data.Data) {
 		j := rand.Intn(i + 1)                   // Generate a random index
 		slice[i], slice[j] = slice[j], slice[i] // Swap elements
 	}
+}
+
+// removeFrequentWords принимает массив массивов слов и удаляет самые частые слова
+func removeFrequentWords(data []data.Data, threshold int) []data.Data {
+	wordCount := make(map[string]int)
+
+	// Подсчет частоты слов
+	for _, words := range data {
+		for _, word := range words.Words {
+			wordCount[word]++
+		}
+	}
+
+	// Создание множества самых частых слов
+	frequentWords := make(map[string]struct{})
+	for word, count := range wordCount {
+		if count >= threshold {
+			frequentWords[word] = struct{}{}
+		}
+	}
+
+	// Создание нового массива без самых частых слов
+	for i, words := range data {
+		var filteredWords []string
+		for _, word := range words.Words {
+			if _, exists := frequentWords[word]; !exists {
+				filteredWords = append(filteredWords, word)
+			}
+		}
+		data[i].Words = filteredWords
+		// result = append(result, filteredWords)
+	}
+
+	log.Println("removeFrequentWords", frequentWords)
+
+	return data
 }
 
 func (model *Model) learn(database db.DatabaseSQLite) {
@@ -130,7 +165,7 @@ func (model *Model) learn(database db.DatabaseSQLite) {
 	log.Println("model learned")
 }
 
-func (model *Model) learnNew(database db.DatabaseSQLite, ratio float64, convert bool) []data.Data {
+func (model *Model) LearnNew(database db.DatabaseSQLite, ratio float64, convert bool) []data.Data {
 	data, err := database.GetTestData()
 	if err != nil {
 		log.Fatal(err)
@@ -138,7 +173,9 @@ func (model *Model) learnNew(database db.DatabaseSQLite, ratio float64, convert 
 
 	shuffleSlice(data)
 
-	// Calculate the number of elements to take (90%)
+	data = removeFrequentWords(data, 100)
+
+	// Calculate the number of elements to take (ratio%)
 	ninetyPercentCount := int(ratio * float64(len(data)))
 
 	// Take the first 90% of the shuffled array
@@ -147,6 +184,7 @@ func (model *Model) learnNew(database db.DatabaseSQLite, ratio float64, convert 
 
 	for _, t := range train {
 		model.classifier.Learn(t.Words, bayesian.Class(t.Label))
+		// log.Println(t.Words, bayesian.Class(t.Label))
 	}
 	log.Println("model learned new")
 
@@ -161,7 +199,7 @@ func (model *Model) learnNew(database db.DatabaseSQLite, ratio float64, convert 
 func (model *Model) embed(data []data.Data) []data.Data {
 	for i := range data {
 		data[i].Vec = make([]float32, 300)
-		model.w2v.Embedding(strings.Join(data[i].Words, " "), data[i].Vec)
+		// model.w2v.Embedding(strings.Join(data[i].Words, " "), data[i].Vec)
 	}
 	return data
 }

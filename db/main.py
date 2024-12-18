@@ -4,6 +4,8 @@ import hashlib
 
 # program to zip and unzip main db for git storage
 
+os.system("pwd")
+
 db_file = 'db/main.db'  # Path to your database file
 zip_file = 'db/main.db.zip'              # Name of the zip file
 chunk_size = 10 * 1024 * 1024          # 10 MB

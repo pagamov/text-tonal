@@ -13,39 +13,7 @@ import (
 	// _ "modernc.org/sqlite"
 )
 
-const (
-	LogTableSQL = `CREATE TABLE IF NOT EXISTS "log_table" (
-        "id" INTEGER PRIMARY KEY,
-        "date" TEXT,
-        "text" TEXT,
-        "label" TEXT,
-        "info" TEXT
-    );`
-
-	SampleTableSQL = `CREATE TABLE IF NOT EXISTS "sample_table" (
-        "id" INTEGER PRIMARY KEY,
-        "text_en" TEXT,
-        "text_ru" TEXT DEFAULT NULL,
-        "label" TEXT,
-        "processed" INTEGER DEFAULT 0
-    );`
-
-	UsageTableSQL = `CREATE TABLE IF NOT EXISTS "usage_table" (
-        "id" INTEGER PRIMARY KEY,
-        "word" TEXT NOT NULL,
-        "language" TEXT NOT NULL,
-        "label" TEXT NOT NULL,
-        "usage" INTEGER NOT NULL DEFAULT 0
-    );`
-)
-
-// Database class
-
-type DatabaseSQLite struct {
-	path string
-	db   *sql.DB
-	rows *sql.Rows
-}
+const ()
 
 func CreateDatabaseSQLite(path string) *DatabaseSQLite {
 	var res DatabaseSQLite = DatabaseSQLite{path: path, db: nil, rows: nil}
@@ -127,57 +95,6 @@ func TransferUsageData(sqliteDB, pgDB *sql.DB) {
 			log.Fatal(err)
 		}
 	}
-}
-
-// setup all db tables
-func (database *DatabaseSQLite) Init() {
-	var db *sql.DB
-	var err error
-	var path string = database.path
-
-	var Log_table string = `CREATE TABLE IF NOT EXISTS "Log_table" (
-		"id"	INTEGER,
-		"date"	TEXT,
-		"text"	TEXT,
-		"label"	TEXT,
-		"info"	TEXT,
-		PRIMARY KEY("id")
-	);`
-	var Sample_table string = `
-	CREATE TABLE IF NOT EXISTS "Sample_table" (
-		"id"	INTEGER,
-		"text_en"	TEXT,
-		"text_ru"	TEXT DEFAULT NULL,
-		"label"	TEXT,
-		"processed"	INTEGER DEFAULT 0,
-		PRIMARY KEY("id")
-	);`
-	var Usage_table string = `
-	CREATE TABLE IF NOT EXISTS "Usage_table" (
-		"id"	INTEGER,
-		"word"	TEXT NOT NULL,
-		"language"	TEXT NOT NULL,
-		"label"	TEXT NOT NULL,
-		"usage"	INTEGER NOT NULL DEFAULT 0,
-		PRIMARY KEY("id")
-	);`
-
-	db, err = sql.Open("sqlite3", path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	if _, err := db.Exec(Log_table); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := db.Exec(Sample_table); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := db.Exec(Usage_table); err != nil {
-		log.Fatal(err)
-	}
-	log.Print("db inited")
 }
 
 func (database *DatabaseSQLite) GetTestData() ([]data.Data, error) {
@@ -296,26 +213,6 @@ func (database *DatabaseSQLite) GetLabels() ([]bayesian.Class, error) {
 	return res, nil
 }
 
-// func CreateCon(path string) (Database, error) {
-// 	db, err := sql.Open("sqlite3", path)
-// 	if err != nil {
-// 		return Database{}, err
-// 	}
-// 	var database = Database{path: path, db: db, rows: nil}
-// 	return database, nil
-// }
-
-// func CloseCon(database *Database) error {
-// 	var err error
-// 	if database.db != nil {
-// 		err = database.db.Close()
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
-
 func (database *DatabaseSQLite) ReplaceLabels() {
 	var db *sql.DB
 	var err error
@@ -327,13 +224,13 @@ func (database *DatabaseSQLite) ReplaceLabels() {
 	}
 	defer db.Close()
 
-	q1 := `UPDATE Sample_table SET label = 'neutral' WHERE label in ('empty' , 'relief' , 'surprise' , 'worry' , 'boredom');`
-	q2 := `UPDATE Sample_table SET label = 'good' WHERE label in ('enthusiasm' , 'fun' , 'happiness' , 'joy' , 'love');`
-	q3 := `UPDATE Sample_table SET label = 'bad' WHERE label in ('anger' , 'fear' , 'hate' , 'sadness');`
+	// q1 := `UPDATE Sample_table SET label = 'neutral' WHERE label in ();`
+	q2 := `UPDATE Sample_table SET label = 'good' WHERE label in ('relief', 'enthusiasm' , 'fun' , 'happiness' , 'joy' , 'love', 'surprise');`
+	q3 := `UPDATE Sample_table SET label = 'bad' WHERE label in ('anger' , 'fear' , 'hate' , 'sadness', 'worry', 'boredom', 'empty');`
 
-	if _, err := db.Exec(q1); err != nil {
-		log.Fatal(err)
-	}
+	// if _, err := db.Exec(q1); err != nil {
+	// 	log.Fatal(err)
+	// }
 	if _, err := db.Exec(q2); err != nil {
 		log.Fatal(err)
 	}
@@ -341,13 +238,13 @@ func (database *DatabaseSQLite) ReplaceLabels() {
 		log.Fatal(err)
 	}
 
-	q4 := `UPDATE Usage_table SET label = 'neutral' WHERE label in ('empty' , 'relief' , 'surprise' , 'worry' , 'boredom');`
-	q5 := `UPDATE Usage_table SET label = 'good' WHERE label in ('enthusiasm' , 'fun' , 'happiness' , 'joy' , 'love');`
-	q6 := `UPDATE Usage_table SET label = 'bad' WHERE label in ('anger' , 'fear' , 'hate' , 'sadness');`
+	// q4 := `UPDATE Usage_table SET label = 'neutral' WHERE label in ('empty' , 'relief' , 'surprise' , 'worry' , 'boredom');`
+	q5 := `UPDATE Usage_table SET label = 'good' WHERE label in ('relief', 'enthusiasm' , 'fun' , 'happiness' , 'joy' , 'love', 'surprise');`
+	q6 := `UPDATE Usage_table SET label = 'bad' WHERE label in ('anger' , 'fear' , 'hate' , 'sadness', 'worry', 'boredom', 'empty');`
 
-	if _, err := db.Exec(q4); err != nil {
-		log.Fatal(err)
-	}
+	// if _, err := db.Exec(q4); err != nil {
+	// 	log.Fatal(err)
+	// }
 	if _, err := db.Exec(q5); err != nil {
 		log.Fatal(err)
 	}
