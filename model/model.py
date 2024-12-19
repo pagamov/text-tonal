@@ -7,17 +7,50 @@ from gensim.models import Word2Vec
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from keras import layers
+from keras import layers, regularizers
+import psycopg2
+from psycopg2 import sql
+
+from flask import Flask, jsonify
+
+# Database connection parameters
+db_params = {
+    'dbname': 'database',
+    'user': 'pagamov',
+    'password': 'multipass',
+    'host': 'localhost',  # or your database host
+    'port': '5432'        # default PostgreSQL port
+}
+
+connection = psycopg2.connect(**db_params)
+print("Connection to the database established successfully.")
+
+cursor = connection.cursor()
 
 # Connect to the SQLite database
-conn = sqlite3.connect('db/main.db')
-cursor = conn.cursor()
-query = "SELECT id, text_en, text_ru, label, processed FROM Sample_table"
+# conn = sqlite3.connect('db/main.db')
+# cursor = conn.cursor()
+query = "SELECT id, text_en, text_ru, label, processed FROM sample_table"
 cursor.execute(query)
+connection.commit()
 data = cursor.fetchall()
 columns = [description[0] for description in cursor.description]
 df = pd.DataFrame(data, columns=columns)
-conn.close()
+cursor.close()
+connection.close()
+
+physical_devices = tf.config.list_physical_devices('GPU')
+print("Num GPUs Available: ", len(physical_devices))
+
+# List available GPUs
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Set memory growth to avoid allocating all GPU memory
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
 
 # Display the first few rows of the dataset
 print(df.head())
@@ -27,6 +60,7 @@ df['tokenized_text'] = df['text_en'].apply(lambda x: x.split())
 
 # Train a Word2Vec model
 word2vec_model = Word2Vec(sentences=df['tokenized_text'], vector_size=100, window=5, min_count=1, workers=4)
+# word2vec_model.
 
 # Function to convert text to vector by averaging word vectors
 def text_to_vector(text):
@@ -50,9 +84,9 @@ X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2,
 # Build the neural network model
 model = keras.Sequential([
     layers.Input(shape=(X_train.shape[1],)),  # Input layer
-    layers.Dense(128, activation='relu'),       # Hidden layer with 128 neurons
+    layers.Dense(256, activation='relu', kernel_regularizer=regularizers.l1(0.01)),       # Hidden layer with 256 neurons
     layers.Dropout(0.5),                        # Dropout layer for regularization
-    layers.Dense(64, activation='relu'),        # Hidden layer with 64 neurons
+    layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l2(0.01)),        # Hidden layer with 128 neurons
     layers.Dense(len(np.unique(y_encoded)), activation='softmax')  # Output layer
 ])
 

@@ -1,0 +1,9 @@
+pandas
+scikit-learn
+gensim
+numpy
+tensorflow
+keras
+flask
+jsonify
+psycopg2-binary

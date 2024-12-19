@@ -4,3 +4,5 @@ docker ps -q --filter "ancestor=app" | xargs -r docker stop
 docker ps -q --filter "ancestor=db" | xargs -r docker stop
 # stop redis
 docker ps -q --filter "ancestor=redis:latest" | xargs -r docker stop
+# stop model
+docker ps -q --filter "ancestor=model" | xargs -r docker stop

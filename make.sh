@@ -41,4 +41,18 @@ docker run -d -p 6379:6379 redis:latest
 docker ps -q --filter "ancestor=redis:latest" | xargs -r echo "docker is up [redis]"
 # -----------------------------
 
+
+# docker model
+# -----------------------------
+cd model/
+docker build -t model .
+docker run -d -p 8081:8081 model
+
+# python3 -m venv venv
+# source venv/bin/activate
+# deactivate
+
+
+cd ..
+# -----------------------------
 docker ps
