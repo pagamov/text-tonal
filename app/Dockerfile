@@ -1,9 +1,11 @@
 FROM golang:alpine
 WORKDIR /app
 COPY main.go .
+COPY model.go .
+COPY redis.go .
 COPY go.mod .
 COPY go.sum .
-RUN go build -o main main.go
+RUN go build -o main .
 
 ARG DEFAULT_PORT=8080
 ENV PORT $DEFAULT_PORT

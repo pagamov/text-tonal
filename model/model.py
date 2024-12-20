@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -12,24 +11,45 @@ from keras import layers, regularizers
 import psycopg2
 from psycopg2 import sql
 import logging
-
-from flask import Flask, jsonify
+import joblib
+from flask import Flask, jsonify, request
 
 # from flask import Flask
 
 app = Flask(__name__)
 
+main_model = None
+w2v_model = None
+label_encoder = None
+
 logging.basicConfig(level=logging.DEBUG,  # Set the logging level
                     format='%(asctime)s - %(levelname)s - %(message)s')  # Set the log message format
 
 
-@app.route('/ping')
+@app.route('/ping', methods=['GET'])
 def ping():
     return jsonify({'message': 'pong'})
 
-@app.route('/')
-def index():
-    return "This is the home page"
+# @app.route('/status', methods=['GET'])
+# def status():
+#     return main_model.summary()
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    text : str = request.get_json(force=True)["text"]
+    print(text)
+    vector = text_to_vector(text.lower(), w2v_model).reshape(1,-1)
+    res = main_model.predict(vector)
+    pred_class_index = np.argmax(res, axis=1)[0]
+
+    by_word = []
+    for word in text.split(" "):
+        vector = text_to_vector(word.lower(), w2v_model).reshape(1,-1)
+        res = main_model.predict(vector)
+        pred_class_index = np.argmax(res, axis=1)[0]
+        by_word.append({'Word': word, 'Label': label_encoder.classes_[pred_class_index]})
+    return jsonify({'Label': label_encoder.classes_[pred_class_index], 'Words': by_word})
+
 
 
 def connect() -> tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor]:
@@ -89,6 +109,8 @@ def train():
     df['tokenized_text'] = df['text_en'].apply(lambda x: x.split())
     word2vec_model = Word2Vec(sentences=df['tokenized_text'], vector_size=100, window=5, min_count=1, workers=4)
 
+    save_W2V_model(word2vec_model)
+
     # Convert the text data to vectors
     X = np.array([text_to_vector(text, word2vec_model) for text in df['text_en']])
     y = df['label']
@@ -96,6 +118,8 @@ def train():
     # Encode labels
     label_encoder = LabelEncoder()
     y_encoded = label_encoder.fit_transform(y)
+
+    joblib.dump(label_encoder, "label_encoder.pkl")
 
     # Split the dataset into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
@@ -128,15 +152,33 @@ def train():
 
     save_model(model)
 
+    return jsonify({'message': 'trained'}) 
+
 def save_model(model: keras.Model):
     model.save('text_classification_model.h5')
 
-def loadModel() -> keras.Model | None:
+def save_W2V_model(model):
+    model.save('word2vec_model.model')
+
+def loadWord2VecModel():
+    model_path = os.path.join('./', 'word2vec_model.model')
+    if os.path.isfile(model_path):
+        # Load the model if it exists
+        # model = keras.model.load
+        model = Word2Vec.load(model_path)
+        # model.summary()
+        logging.info("Model W2V loaded successfully.")
+        return model
+    else:
+        logging.info("Model W2V file does not exist.")
+        return None
+
+def loadModel() -> keras.Model:
     model_path = os.path.join('./', 'text_classification_model.h5')
     if os.path.isfile(model_path):
         # Load the model if it exists
         # model = keras.model.load
-        model = load_model(model_path)
+        model = tf.keras.models.load_model(model_path)
         model.summary()
         logging.info("Model loaded successfully.")
         return model
@@ -146,10 +188,19 @@ def loadModel() -> keras.Model | None:
 
 if __name__ == '__main__':
     model = loadModel()
-
-    app.run(debug=None, host='127.0.0.1', port=8081)
-
+    main_model = model
+    word2vec_model = loadWord2VecModel()
+    w2v_model = word2vec_model
+    try:
+        label_encoder = joblib.load("label_encoder.pkl")
+        logging.info("Model label_encoder loaded successfully.")
+    except:
+        label_encoder = None
+    
     logging.info("Flask running on port 8081")
+    app.run(debug=True, host='127.0.0.1', port=8081)
+
+    
 
 
 

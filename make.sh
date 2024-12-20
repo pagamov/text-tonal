@@ -1,10 +1,10 @@
 # docker main app
 # -----------------------------
-cd app/
-docker build -t app .
-docker run -d -p 8080:8080 app
-cd ..
-docker ps -q --filter "ancestor=app" | xargs -r echo "docker is up [app]"
+# cd app/
+# docker build -t app .
+# docker run -d -p 8080:8080 app
+# cd ..
+# docker ps -q --filter "ancestor=app" | xargs -r echo "docker is up [app]"
 # -----------------------------
 
 # docker posgresql

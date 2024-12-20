@@ -1,11 +1,14 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # Set the working directory in the container
 WORKDIR /model
 
 # Copy the requirements file into the container
 COPY requirements.txt .
+COPY text_classification_model.h5 .
+COPY word2vec_model.model .
+COPY label_encoder.pkl .
 
 # Install the required Python packages
 RUN pip install --no-cache-dir -r requirements.txt

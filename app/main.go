@@ -1,13 +1,27 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+
+	currentTime := time.Now()
+
+	// Format the current time to dd.mm.yyyy
+	formattedDate := currentTime.Format("02.01.2006")
+
+	// Print the formatted date
+	fmt.Println("Current date in dd.mm.yyyy format:", formattedDate)
+
+	initRedis()
+
 	var router Router
 	router.Init()
 	router.AddMethod()
@@ -22,20 +36,18 @@ type Info struct {
 
 // for word we got N info marks for each label
 type Word struct {
-	Word string `json:"word"`
-	Info []Info `json:"info"`
+	Word  string `json:"Word"`
+	Label string `json:"Label"`
 }
 
 type Analyz struct {
-	Count int64  `json:"count"`
-	Label string `json:"label"`
-	Words []Word `json:"words"`
+	Label string `json:"Label"`
+	Words []Word `json:"Words"`
 }
 
 type Statistics struct {
 	Date  string `json:"date"`
 	Text  string `json:"text"`
-	Count int64  `json:"count"`
 	Label string `json:"label"`
 	Words []Word `json:"words"`
 }
@@ -50,12 +62,18 @@ func (api *Router) Init() {
 
 func (api *Router) AddMethod() {
 	api.router.POST("/analyze", analyze)
-	api.router.GET("/statistics", statistics)
+	api.router.GET("/statistics/:begin/:end", statistics)
 	api.router.GET("/ping", ping)
+	api.router.GET("/logs", getLogs)
 }
 
 func (api *Router) Start(port string) {
 	api.router.Run(fmt.Sprintf(":%s", port))
+}
+
+func getLogs(c *gin.Context) {
+	var statistics []Statistics = getLog("01.01.2000", "01.01.2030")
+	c.IndentedJSON(http.StatusOK, statistics)
 }
 
 func ping(c *gin.Context) {
@@ -64,74 +82,83 @@ func ping(c *gin.Context) {
 
 func analyze(c *gin.Context) {
 	// 	POST API/analyze?text=some text to parse
-	// 	RES =  {
-	//         "count" : "Number of words : Int64",
-	//         "label" : "soft max label of text : String",
-	//         "words" : [
-	//             {
-	//                 "word" : "word itself : String",
-	//                 "info" : [
-	//                     {
-	//                         "label" : "some label from learning labels : String",
-	//                         "value" : "percentage : Int8"
-	//                     }
-	//                 ]
-	//             }
-	//         ]
-	// }
+	var jsonData []byte
+	var analyz Analyz
+	jsonData = getJsonData(c)
+	fmt.Println(string(jsonData))
 
-	res := Analyz{
-		Count: 10,
-		Label: "label",
-		Words: []Word{
-			{
-				Word: "word",
-				Info: []Info{
-					{Label: "label", Value: 10},
-				},
-			},
-		},
+	if checkIfInRedis(c) {
+		analyz = getFromRedis(jsonData)
+		log.Println("Get from Redis")
+	} else {
+		analyz = makePostRequestToModel(c)
+		addToRedis(jsonData, analyz)
+		log.Println("Added to Redis")
 	}
 
-	c.IndentedJSON(http.StatusOK, res)
+	jsonAnalyz, err := json.Marshal(analyz)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	addLog(c.Query("text"), analyz.Label, string(jsonAnalyz))
+	c.IndentedJSON(http.StatusOK, analyz)
+}
+
+func validateDate(dateStr string) bool {
+	layout := "02.01.2006" // dd.mm.yyyy
+	_, err := time.Parse(layout, dateStr)
+	return err == nil
+}
+
+func parseDate(date string) time.Time {
+	time, _ := time.Parse("02.01.2006", date)
+	return time
 }
 
 func statistics(c *gin.Context) {
-	// GET API/statistics?date_begin=“dd.mm.yyyy”&date_end==“dd.mm.yyyy”
-	// RES =  [{
-	// 	"date" : "date of request : Date",
-	// 	"text" : "text : String",
-	// 	"count" : "Number of words : Int64",
-	// 			"label" : "soft max label of text : String",
-	// 			"words" : [
-	// 				{  "word" : "word itself : String",
-	// 					"info" : [{
-	// 							"label" : "some label from learning labels : String",
-	// 							"value" : "percentage : Int8"
-	// 						}]
-	// 				}
-	// 			]
-	// 	}]
+	// GET API/statistics/dd.mm.yyyy/dd.mm.yyyy
 
-	var res []Statistics = []Statistics{
-		{
-			Date:  "01/01/1977 14:20:00",
-			Text:  "Some text",
-			Count: 10,
-			Label: "label",
-			Words: []Word{
-				{
-					Word: "word",
-					Info: []Info{
-						{
-							Label: "label",
-							Value: 0,
-						},
-					},
-				},
-			},
-		},
+	var data_from string
+	var data_to string
+	var exist bool
+
+	var from time.Time
+	var to time.Time
+
+	if data_from, exist = c.Params.Get("begin"); !exist || !validateDate(data_from) {
+		c.IndentedJSON(http.StatusBadRequest, "data_from not Exist or not dd.mm.yyyy")
+		return
 	}
+
+	if data_to, exist = c.Params.Get("end"); !exist || !validateDate(data_to) {
+		c.IndentedJSON(http.StatusBadRequest, "data_end not Exist or not dd.mm.yyyy")
+		return
+	}
+
+	from = parseDate(data_from)
+	to = parseDate(data_to)
+	if !from.Before(to) {
+		c.IndentedJSON(http.StatusBadRequest, "data_end before data_start")
+		return
+	}
+
+	var res []Statistics = getLog(data_from, data_to)
+
+	// var res []Statistics = []Statistics{
+	// 	{
+	// 		Date:  "01/01/1977 14:20:00",
+	// 		Text:  "Some text",
+	// 		Count: 10,
+	// 		Label: "label",
+	// 		Words: []Word{
+	// 			{
+	// 				Word:  "word",
+	// 				Label: "label",
+	// 			},
+	// 		},
+	// 	},
+	// }
 
 	c.IndentedJSON(http.StatusOK, res)
 }
