@@ -94,7 +94,7 @@ func getLog(date_start string, date_end string) []Statistics {
 		fmt.Println(analyzB)
 
 		json.Unmarshal([]byte(analyzB), &analyz)
-		// stat.Words = analyz.Words
+		stat.Words = analyz.Words
 		statistics = append(statistics, stat)
 
 	}
