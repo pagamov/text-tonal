@@ -103,7 +103,7 @@ def text_to_vector(text : str, word2vec_model : Word2Vec) -> np.ndarray:
 
 @app.route('/train')
 def train():
-    check_cuda()
+    # check_cuda()
     df = get_data()
     print(df.head())
     df['tokenized_text'] = df['text_en'].apply(lambda x: x.split())
@@ -198,7 +198,7 @@ if __name__ == '__main__':
         label_encoder = None
     
     logging.info("Flask running on port 8081")
-    app.run(debug=True, host='127.0.0.1', port=8081)
+    app.run(debug=None, host='127.0.0.1', port=8081)
 
     
 

@@ -3,6 +3,7 @@ WORKDIR /app
 COPY main.go .
 COPY model.go .
 COPY redis.go .
+COPY db.go .
 COPY go.mod .
 COPY go.sum .
 RUN go build -o main .

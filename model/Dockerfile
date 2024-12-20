@@ -11,10 +11,13 @@ COPY word2vec_model.model .
 COPY label_encoder.pkl .
 
 # Install the required Python packages
-RUN pip install --no-cache-dir -r requirements.txt
+# RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy the rest of the application code into the container
 COPY . .
 
+EXPOSE 8081
+
 # Command to run the application
-CMD ["python", "app.py"]
+CMD ["python", "model.py"]

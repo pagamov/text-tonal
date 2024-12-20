@@ -1,17 +1,24 @@
+# docker redis
+# -----------------------------
+docker pull redis:latest
+docker run -d -p 6379:6379 redis:latest
+docker ps -q --filter "ancestor=redis:latest" | xargs -r echo "docker is up [redis]"
+# -----------------------------
+
 # docker main app
 # -----------------------------
-# cd app/
-# docker build -t app .
-# docker run -d -p 8080:8080 app
-# cd ..
-# docker ps -q --filter "ancestor=app" | xargs -r echo "docker is up [app]"
+cd app/
+docker build -t app .
+docker run --name app -d -p 8080:8080 app
+cd ..
+docker ps -q --filter "ancestor=app" | xargs -r echo "docker is up [app]"
 # -----------------------------
 
 # docker posgresql
 # -----------------------------
 cd db/
 docker build -t db .
-docker run -d -p 5432:5432 db
+docker run --name db -d -p 5432:5432 db
 cd ..
 docker ps -q --filter "ancestor=db" | xargs -r echo "docker is up [db]"
 # -----------------------------
@@ -34,19 +41,14 @@ rm main.db
 cd ..
 # -----------------------------
 
-# docker redis
-# -----------------------------
-docker pull redis:latest
-docker run -d -p 6379:6379 redis:latest
-docker ps -q --filter "ancestor=redis:latest" | xargs -r echo "docker is up [redis]"
-# -----------------------------
+
 
 
 # docker model
 # -----------------------------
 cd model/
 docker build -t model .
-docker run -d -p 8081:8081 model
+docker run --name model -d -p 8081:8081 model
 
 # python3 -m venv venv
 # source venv/bin/activate

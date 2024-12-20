@@ -12,14 +12,6 @@ import (
 
 func main() {
 
-	currentTime := time.Now()
-
-	// Format the current time to dd.mm.yyyy
-	formattedDate := currentTime.Format("02.01.2006")
-
-	// Print the formatted date
-	fmt.Println("Current date in dd.mm.yyyy format:", formattedDate)
-
 	initRedis()
 
 	var router Router
