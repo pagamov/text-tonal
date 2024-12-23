@@ -49,6 +49,7 @@ type Router struct {
 }
 
 func (api *Router) Init() {
+	// gin.SetMode(gin.ReleaseMode)
 	api.router = gin.Default()
 }
 

@@ -9,15 +9,19 @@ COPY requirements.txt .
 COPY text_classification_model.h5 .
 COPY word2vec_model.model .
 COPY label_encoder.pkl .
+COPY model.py .
 
 # Install the required Python packages
 # RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install -r requirements.txt
 
 # Copy the rest of the application code into the container
-COPY . .
+# COPY . .
 
-EXPOSE 8081
+ARG DEFAULT_PORT=8081
+ENV PORT $DEFAULT_PORT
+
+EXPOSE $PORT
 
 # Command to run the application
 CMD ["python", "model.py"]

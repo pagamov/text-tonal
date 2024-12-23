@@ -46,6 +46,7 @@ def predict():
     for word in text.split(" "):
         vector = text_to_vector(word.lower(), w2v_model).reshape(1,-1)
         res = main_model.predict(vector)
+        # print(res, res.shape)
         pred_class_index = np.argmax(res, axis=1)[0]
         by_word.append({'Word': word, 'Label': label_encoder.classes_[pred_class_index]})
     return jsonify({'Label': label_encoder.classes_[pred_class_index], 'Words': by_word})
@@ -198,7 +199,7 @@ if __name__ == '__main__':
         label_encoder = None
     
     logging.info("Flask running on port 8081")
-    app.run(debug=None, host='127.0.0.1', port=8081)
+    app.run(debug=None, host='localhost', port=8081)
 
     
 
