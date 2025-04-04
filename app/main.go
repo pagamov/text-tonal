@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -78,15 +77,12 @@ func analyze(c *gin.Context) {
 	var jsonData []byte
 	var analyz Analyz
 	jsonData = getJsonData(c)
-	fmt.Println(string(jsonData))
 
 	if checkIfInRedis(c) {
 		analyz = getFromRedis(jsonData)
-		log.Println("Get from Redis")
 	} else {
 		analyz = makePostRequestToModel(c)
 		addToRedis(jsonData, analyz)
-		log.Println("Added to Redis")
 	}
 
 	jsonAnalyz, err := json.Marshal(analyz)
